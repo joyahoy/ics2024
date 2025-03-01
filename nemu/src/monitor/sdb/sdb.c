@@ -23,6 +23,7 @@ static int is_batch_mode = false;
 
 void init_regex();
 void init_wp_pool();
+word_t paddr_read(paddr_t addr, int len);
 
 /* We use the `readline' library to provide more flexibility to read from stdin. */
 static char* rl_gets() {
@@ -49,7 +50,41 @@ static int cmd_c(char *args) {
 
 
 static int cmd_q(char *args) {
+	nemu_state.state = NEMU_QUIT;
   return -1;
+}
+
+static int cmd_si(char *args){
+	char* arg = strtok(NULL," ");
+	int step = 0;
+	if(arg == NULL) step = 1;
+	else sscanf(arg,"%d",&step);
+	cpu_exec(step);
+	return 0;
+}
+
+static int cmd_info(char *args){
+	char* arg = strtok(NULL," ");
+	if(strcmp(arg,"r") == 0){
+		isa_reg_display();
+	}else if(strcmp(arg,"w") == 0){
+		TODO();	
+	}else panic("info r/w");	
+	return 0;
+}
+
+static int cmd_x(char *args){
+	char *n = strtok(NULL," ");
+	char *baseaddr = strtok(NULL," ");
+	int len =0;
+ 	sscanf(n,"%d",&len);
+	paddr_t addr =0;
+ 	sscanf(baseaddr,"%x",&addr);
+	for(int i=0;i<len;i++){
+		printf("0x%08x : 0x%08x\n",addr,paddr_read(addr,4));
+		addr += 4;
+	}
+	return 0;
 }
 
 static int cmd_help(char *args);
@@ -62,7 +97,9 @@ static struct {
   { "help", "Display information about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
   { "q", "Exit NEMU", cmd_q },
-
+	{ "si", "si [N]", cmd_si },
+	{ "info", "info r/w", cmd_info },
+	{ "x", "x [N] EXPER", cmd_x },
   /* TODO: Add more commands */
 
 };
