@@ -24,6 +24,7 @@ static int is_batch_mode = false;
 void init_regex();
 void init_wp_pool();
 word_t paddr_read(paddr_t addr, int len);
+word_t expr(char *e, bool *success);
 
 /* We use the `readline' library to provide more flexibility to read from stdin. */
 static char* rl_gets() {
@@ -87,6 +88,13 @@ static int cmd_x(char *args){
 	return 0;
 }
 
+static int cmd_p(char *args){
+	bool success = true;
+	expr(args,&success);
+	assert(success);
+	return 0;
+}
+
 static int cmd_help(char *args);
 
 static struct {
@@ -100,6 +108,7 @@ static struct {
 	{ "si", "si [N]", cmd_si },
 	{ "info", "info r/w", cmd_info },
 	{ "x", "x [N] EXPER", cmd_x },
+	{ "p", "p EXPR", cmd_p },
   /* TODO: Add more commands */
 
 };
