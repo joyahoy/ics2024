@@ -39,27 +39,39 @@ static int choose(int n) {
 }
 
 static void gen_space() {
-	int size = choose(4);
-  if(buf_start < buf_end) {
-    int n_writes = snprintf(buf_start, buf_end-buf_start, "%*s", size, "");
-	  if (n_writes > 0) buf_start += n_writes;
+  int size = choose(4);
+  if (buf_start < buf_end) {
+    int available = buf_end - buf_start;
+    int n_writes = snprintf(buf_start, available, "%*s", size, "");
+    if (n_writes > 0) {
+        int actual = n_writes < available ? n_writes : available - 1;
+        buf_start += actual;
+    }
   }
 }
 
-static void gen_num(){
-	int num = choose(INT8_MAX);
-	if (buf_start < buf_end){
-		int n_writes = snprintf(buf_start, buf_end-buf_start, "%d", num);
-		if (n_writes > 0) buf_start += n_writes;
-	}
-	gen_space();
+static void gen_num() {
+  int num = choose(INT8_MAX);
+  if (buf_start < buf_end) {
+    int available = buf_end - buf_start;
+    int n_writes = snprintf(buf_start, available, "%d", num);
+    if (n_writes > 0) {
+        int actual = n_writes < available ? n_writes : available - 1;
+        buf_start += actual;
+    }
+  }
+  gen_space();
 }
 
-static void gen_char(char c){
-	if (buf_start < buf_end){
-		int n_writes = snprintf(buf_start, buf_end-buf_start, "%c", c);
-		if (n_writes > 0) buf_start += n_writes;
-	}
+static void gen_char(char c) {
+  if (buf_start < buf_end) {
+    int available = buf_end - buf_start;
+    int n_writes = snprintf(buf_start, available, "%c", c);
+    if (n_writes > 0) {
+        int actual = n_writes < available ? n_writes : available - 1;
+        buf_start += actual;
+    }
+  }
 }
 
 static char ops[] = {'+', '-', '*', '/'};
@@ -69,13 +81,21 @@ static void gen_rand_op(){
 	gen_char(op);
 }
 
-
-static void gen_rand_expr() {
-	switch (choose(3)){
-		case 0: gen_num(); break;
-		case 1: gen_char('('); gen_rand_expr(); gen_char(')'); break;
-		default: gen_rand_expr(); gen_rand_op(); gen_rand_expr(); break;
-	}
+#define MAX_DEPTH 100
+static void gen_rand_expr(int depth) {
+	if (depth > MAX_DEPTH) {
+    gen_num();
+    return;
+  }
+  switch (choose(3)) {
+    case 0: gen_num(); break;
+    case 1: gen_char('('); gen_rand_expr(depth + 1); gen_char(')'); break;
+    default:
+      gen_rand_expr(depth + 1);
+      gen_rand_op();
+      gen_rand_expr(depth + 1);
+      break;
+  }
 }
 
 int main(int argc, char *argv[]) {
@@ -87,7 +107,8 @@ int main(int argc, char *argv[]) {
   }
   int i;
   for (i = 0; i < loop; i ++) {
-    gen_rand_expr();
+		buf_start = buf; // 重置缓冲区指针
+    gen_rand_expr(0);
 
     sprintf(code_buf, code_format, buf);
 
@@ -106,7 +127,7 @@ int main(int argc, char *argv[]) {
     ret = fscanf(fp, "%d", &result);
     pclose(fp);
 
-    printf("%u %s;\n", result, buf);
+    printf("%u %s\n", result, buf);
   }
   return 0;
 }

@@ -72,7 +72,7 @@ typedef struct token {
   char str[32];
 } Token;
 
-static Token tokens[65536] __attribute__((used)) = {};
+static Token tokens[1024] __attribute__((used)) = {};
 static int nr_token __attribute__((used))  = 0;
 
 static bool make_token(char *e) {
@@ -118,6 +118,7 @@ static bool make_token(char *e) {
 					case TK_NUM:
 						tokens[nr_token].type = rules[i].token_type;
 						strncpy(tokens[nr_token].str,substr_start,substr_len);
+						tokens[nr_token].str[substr_len] = '\n';
 						nr_token++;
 						break;
 					//过滤空格
@@ -142,7 +143,7 @@ static bool make_token(char *e) {
 bool check_parentheses(int p,int q){
 	if(tokens[p].type != '(' || tokens[q].type != ')') return false;
 	//用数组模拟stack
-	char stk[50];	
+	char stk[1024];	
 	int len = q-1;
 	int i = p+1;	
 	//ptr 栈顶
@@ -158,13 +159,13 @@ bool check_parentheses(int p,int q){
 	return true;	
 }
 
-int eval(int p,int q){
+word_t eval(int p,int q){
 	if(p>q){
 		panic("p>q");
 	}
 	else if(p == q){
 		//This is a number
-		int val = 0;
+		word_t val = 0;
 		sscanf(tokens[p].str,"%d",&val);
 		return val;	
 	}
@@ -185,8 +186,8 @@ int eval(int p,int q){
 			}		
 		}	
 		int op = add_sub==-1 ? mul_div : add_sub; 
-		int	val1 = eval(p,op-1);
-		int val2 = eval(op+1,q);
+		word_t val1 = eval(p,op-1);
+		word_t val2 = eval(op+1,q);
 		switch(tokens[op].type){
 			case '+': return val1+val2;break;
 			case '-': return val1-val2;break;
@@ -204,5 +205,6 @@ word_t expr(char *e, bool *success) {
   }
 
   /* TODO: Insert codes to evaluate the expression. */
-	return	eval(0,nr_token-1);
+	word_t res = eval(0,nr_token-1);
+	return res;
 }
