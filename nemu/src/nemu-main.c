@@ -30,7 +30,7 @@ void test_expr(){
 	bool success = true;
 	while(true){
 		read = getline(&e, &len, fp);	
-		if(read == -1) perror("getline failed");
+		if(read == -1)  {perror("getline failed"); exit(0);} 
 		char *arg1 = strtok(e," ");
 		word_t correct_res = 0;
 		sscanf(arg1, "%u", &correct_res);
@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
 #else
   init_monitor(argc, argv);
 #endif
-	//test_expr();
+	test_expr();
   /* Start engine. */
   engine_start();
 

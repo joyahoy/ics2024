@@ -72,7 +72,7 @@ typedef struct token {
   char str[32];
 } Token;
 
-static Token tokens[1024] __attribute__((used)) = {};
+static Token tokens[65536] __attribute__((used)) = {};
 static int nr_token __attribute__((used))  = 0;
 
 static bool make_token(char *e) {
@@ -118,7 +118,7 @@ static bool make_token(char *e) {
 					case TK_NUM:
 						tokens[nr_token].type = rules[i].token_type;
 						strncpy(tokens[nr_token].str,substr_start,substr_len);
-						tokens[nr_token].str[substr_len] = '\n';
+						tokens[nr_token].str[substr_len] = '\0';
 						nr_token++;
 						break;
 					//过滤空格
@@ -142,30 +142,23 @@ static bool make_token(char *e) {
 
 bool check_parentheses(int p,int q){
 	if(tokens[p].type != '(' || tokens[q].type != ')') return false;
-	//用数组模拟stack
-	char stk[1024];	
-	int len = q-1;
-	int i = p+1;	
-	//ptr 栈顶
-	int ptr = 0;
-	while(i<len){
-		if( tokens[i].type == '(' ) stk[ptr++] = tokens[i].type;
-		else if( tokens[i].type == ')' ){
-			if(ptr != 0 && stk[ptr-1] == '(' ) ptr--;
-			else return false;
+	int stk = 0;
+	for (int i = p+1; i < q; i++){
+		if(tokens[i].type == '(') stk++;
+		if(tokens[i].type == ')'){
+			if(--stk < 0) return false;
 		}
-		i++;
 	}
-	return true;	
+	return stk==0;
 }
 
-word_t eval(int p,int q){
+int eval(int p,int q){
 	if(p>q){
 		panic("p>q");
 	}
 	else if(p == q){
 		//This is a number
-		word_t val = 0;
+		int val = 0;
 		sscanf(tokens[p].str,"%d",&val);
 		return val;	
 	}
@@ -177,17 +170,18 @@ word_t eval(int p,int q){
 		int add_sub = -1;
 		int mul_div = -1;
 		int cnt_rparen = 0;
+		int flag1 = 0 ,flag2 = 0;
 		for(int i=q;i>=p;i--){
 			if(tokens[i].type == ')') cnt_rparen++;
 			else if(tokens[i].type == '(') cnt_rparen--;
 			if(cnt_rparen == 0){
-				if(tokens[i].type == '+' || tokens[i].type == '-') {add_sub = i;break;}
-				if(tokens[i].type == '*' || tokens[i].type == '/') {mul_div = i;break;}
+				if( (tokens[i].type == '+' || tokens[i].type == '-') && flag1 == 0) { flag1=1; add_sub = i;}
+				if( (tokens[i].type == '*' || tokens[i].type == '/') && flag2 == 0) { flag2=1; mul_div = i;}
 			}		
 		}	
 		int op = add_sub==-1 ? mul_div : add_sub; 
-		word_t val1 = eval(p,op-1);
-		word_t val2 = eval(op+1,q);
+		int val1 = eval(p,op-1);
+		int val2 = eval(op+1,q);
 		switch(tokens[op].type){
 			case '+': return val1+val2;break;
 			case '-': return val1-val2;break;
@@ -205,6 +199,6 @@ word_t expr(char *e, bool *success) {
   }
 
   /* TODO: Insert codes to evaluate the expression. */
-	word_t res = eval(0,nr_token-1);
+	word_t res = (word_t)eval(0,nr_token-1);
 	return res;
 }
