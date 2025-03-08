@@ -75,6 +75,7 @@ static int cmd_info(char *args){
 }
 
 static int cmd_x(char *args){
+	// TODO x [N] EXPR  的 expr
 	char *n = strtok(NULL," ");
 	char *baseaddr = strtok(NULL," ");
 	int len =0;
@@ -90,7 +91,7 @@ static int cmd_x(char *args){
 
 static int cmd_p(char *args){
 	bool success = true;
-	printf("%d\n",expr(args,&success));
+	printf("%u\n",expr(args,&success));
 	assert(success);
 	return 0;
 }

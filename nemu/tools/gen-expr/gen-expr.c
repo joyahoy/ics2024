@@ -80,7 +80,7 @@ static void gen_rand_op(){
 	char op = ops[op_index];
 	gen_char(op);
 }
-
+//疑问： 如果递归都是第三种，递归的深度
 #define MAX_DEPTH 100
 static void gen_rand_expr(int depth) {
 	if (depth > MAX_DEPTH) {

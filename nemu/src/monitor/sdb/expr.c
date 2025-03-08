@@ -20,8 +20,12 @@
  */
 #include <regex.h>
 
+
+word_t isa_reg_str2val(const char *s, bool *success);
+word_t paddr_read(paddr_t addr, int len);
+
 enum {
-  TK_NOTYPE = 256, TK_EQ, TK_NUM
+  TK_NOTYPE = 256, TK_EQ, TK_NUM, TK_REG, TK_DEREF, TK_HEX
   /* TODO: Add more token types */
 
 };
@@ -37,8 +41,10 @@ static struct rule {
 
   {" +", TK_NOTYPE},    // spaces
   {"==", TK_EQ},        // equal
+	{"^0x[a-fA-F0-9]+", TK_HEX},   // hex 排在number的前面，避免regex解析错误
 	{"[0-9]+", TK_NUM},     // number
-  {"\\+", '+'},         // plus
+	{"^\\$+[a-z0-9]+", TK_REG},	// reg
+	  {"\\+", '+'},         // plus
 	{"\\-", '-'},					 // sub
 	{"\\*", '*'},          // mult
 	{"\\/", '/'},          // DIVISION
@@ -115,7 +121,10 @@ static bool make_token(char *e) {
 						tokens[nr_token].type = rules[i].token_type;
 						nr_token++;
 						break;
+					//reg,num,hex
+				  case TK_REG:			
 					case TK_NUM:
+					case TK_HEX:
 						tokens[nr_token].type = rules[i].token_type;
 						strncpy(tokens[nr_token].str,substr_start,substr_len);
 						tokens[nr_token].str[substr_len] = '\0';
@@ -139,9 +148,11 @@ static bool make_token(char *e) {
   return true;
 }
 
-
+//去掉整体表达式的左右括号（如果有的话）
+//检查括号是否匹配
 bool check_parentheses(int p,int q){
 	if(tokens[p].type != '(' || tokens[q].type != ')') return false;
+	
 	int stk = 0;
 	for (int i = p+1; i < q; i++){
 		if(tokens[i].type == '(') stk++;
@@ -149,6 +160,7 @@ bool check_parentheses(int p,int q){
 			if(--stk < 0) return false;
 		}
 	}
+
 	return stk==0;
 }
 
@@ -156,17 +168,34 @@ int eval(int p,int q){
 	if(p>q){
 		panic("p>q");
 	}
-	else if(p == q){
-		//This is a number
+	else if(p == q){         //This is a number or a reg  读数字或者从寄存器里读数值
+			if(tokens[p].type == TK_REG){
+			bool success = true;
+			int res = isa_reg_str2val(tokens[p].str,&success); 
+			Assert(success,"reg读值不成功");
+			return res;
+		}
 		int val = 0;
 		sscanf(tokens[p].str,"%d",&val);
 		return val;	
 	}
-	else if(check_parentheses(p, q) == true){
+	else if(check_parentheses(p, q) == true){  // 括号匹配检查
 		return eval(p+1,q-1);
+	}
+	else if(p + 1 == q){    // 从内存中读取数值
+		if(tokens[p].type == TK_DEREF && tokens[q].type == TK_HEX){
+			paddr_t addr = 0;
+			sscanf(tokens[q].str, "%x", &addr);
+			return paddr_read(addr,4);	
+		}
+		else{
+			printf("%d %d\n", tokens[p].type, tokens[q].type);
+			panic("expression wrong");
+		}	
 	}
 	else{
 		// 找op，从右往左，如果遇到括号，则忽略括号里面的东西，
+		// 先  add_sub, mul_div, dereference,
 		int add_sub = -1;
 		int mul_div = -1;
 		int cnt_rparen = 0;
@@ -192,6 +221,7 @@ int eval(int p,int q){
 	}
 }
 
+
 word_t expr(char *e, bool *success) {
   if (!make_token(e)) {
     *success = false;
@@ -199,6 +229,14 @@ word_t expr(char *e, bool *success) {
   }
 
   /* TODO: Insert codes to evaluate the expression. */
+	//DEREF (* the address of memory) 
+	for(int i = 0;i<nr_token;i++){
+		if(tokens[i].type == '*' && (i == 0 || tokens[i-1].type == '(')){
+			tokens[i].type = TK_DEREF;
+			printf("tokens[%d].type = TK_DEREF\n", i);
+		}
+	}
+
 	word_t res = (word_t)eval(0,nr_token-1);
 	return res;
 }
