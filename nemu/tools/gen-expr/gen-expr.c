@@ -74,11 +74,18 @@ static void gen_char(char c) {
   }
 }
 
-static char ops[] = {'+', '-', '*', '/'};
+static char* ops[] = {"&&", "==", "!=", "+", "-", "*", "/"};
 static void gen_rand_op(){
 	int op_index = choose(sizeof(ops));
-	char op = ops[op_index];
-	gen_char(op);
+	char* op = ops[op_index];
+	if(buf_start < buf_end) {
+		int available = buf_end - buf_start;
+		int n_writes = snprintf(buf_start, available, "%s", op);
+		if(n_writes > 0) {
+			int actual = n_writes < available ? n_writes : available - 1;
+			buf_start += actual;
+		}
+	}	
 }
 //疑问： 如果递归都是第三种，递归的深度
 #define MAX_DEPTH 100

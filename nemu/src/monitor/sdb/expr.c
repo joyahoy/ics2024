@@ -25,7 +25,7 @@ word_t isa_reg_str2val(const char *s, bool *success);
 word_t paddr_read(paddr_t addr, int len);
 
 enum {
-  TK_NOTYPE = 256, TK_EQ, TK_NUM, TK_REG, TK_DEREF, TK_HEX
+  TK_NOTYPE = 256, TK_EQ, TK_NUM, TK_REG, TK_DEREF, TK_HEX, TK_NEQ, TK_AND
   /* TODO: Add more token types */
 
 };
@@ -40,7 +40,9 @@ static struct rule {
    */
 
   {" +", TK_NOTYPE},    // spaces
-  {"==", TK_EQ},        // equal
+  {"^==$", TK_EQ},        // equal
+	{"^!=$", TK_NEQ},     // not equal
+	{"^&&$", TK_AND},     // and
 	{"^0x[a-fA-F0-9]+", TK_HEX},   // hex 排在number的前面，避免regex解析错误
 	{"[0-9]+", TK_NUM},     // number
 	{"^\\$+[a-z0-9]+", TK_REG},	// reg
@@ -111,6 +113,8 @@ static bool make_token(char *e) {
 					case '*':
 					case '/':
 					case TK_EQ:
+					case TK_NEQ:
+					case TK_AND:
 					case ')':
 						tokens[nr_token].type = rules[i].token_type;
 						nr_token++;
@@ -195,23 +199,33 @@ int eval(int p,int q){
 	}
 	else{
 		// 找op，从右往左，如果遇到括号，则忽略括号里面的东西，
-		// 先  add_sub, mul_div, dereference,
-		int add_sub = -1;
-		int mul_div = -1;
-		int cnt_rparen = 0;
-		int flag1 = 0 ,flag2 = 0;
-		for(int i=q;i>=p;i--){
-			if(tokens[i].type == ')') cnt_rparen++;
-			else if(tokens[i].type == '(') cnt_rparen--;
-			if(cnt_rparen == 0){
-				if( (tokens[i].type == '+' || tokens[i].type == '-') && flag1 == 0) { flag1=1; add_sub = i;}
-				if( (tokens[i].type == '*' || tokens[i].type == '/') && flag2 == 0) { flag2=1; mul_div = i;}
+		//array  0 AND 1 eq_neq 2 add_sub 3 mul_div
+		int array[4]; 
+		memset(array, -1, sizeof(array));
+		int cnt_lparen = 0;
+		for(int i=p;i<=q;i++){
+			if(tokens[i].type == '(') cnt_lparen++;
+			else if(tokens[i].type == ')') cnt_lparen--;
+			if(cnt_lparen == 0){
+				if( tokens[i].type == TK_AND ) { array[0] = i; }
+				if( tokens[i].type == TK_EQ || tokens[i].type == TK_NEQ ) { array[1] = i; }
+				if( tokens[i].type == '+' || tokens[i].type == '-' ) { array[2] = i; }
+				if( tokens[i].type == '*' || tokens[i].type == '/' ) { array[3] = i; }
 			}		
 		}	
-		int op = add_sub==-1 ? mul_div : add_sub; 
+		int op = -1;
+		for(int i = 0;i<(int)sizeof(array);i++){
+			if(array[i] != -1){
+				op = array[i];
+				break;
+			}	
+		}
 		int val1 = eval(p,op-1);
 		int val2 = eval(op+1,q);
 		switch(tokens[op].type){
+			case TK_AND: return val1 && val2;break;
+			case TK_EQ: return val1 == val2;break;
+			case TK_NEQ: return val1 != val2;break;
 			case '+': return val1+val2;break;
 			case '-': return val1-val2;break;
 			case '*': return val1*val2;break;
