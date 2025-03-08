@@ -76,7 +76,7 @@ static void gen_char(char c) {
 
 static char* ops[] = {"&&", "==", "!=", "+", "-", "*", "/"};
 static void gen_rand_op(){
-	int op_index = choose(sizeof(ops));
+	int op_index = choose(sizeof(ops)/sizeof(ops[0]));
 	char* op = ops[op_index];
 	if(buf_start < buf_end) {
 		int available = buf_end - buf_start;
@@ -124,7 +124,7 @@ int main(int argc, char *argv[]) {
     fputs(code_buf, fp);
     fclose(fp);
 		// filter div-by-zero expressions
-    int ret = system("gcc /tmp/.code.c -Wall -Werror -o /tmp/.expr");
+    int ret = system("gcc /tmp/.code.c -Wall -Werror -Wdiv-by-zero -o /tmp/.expr");
     if (ret != 0) continue;
 
     fp = popen("/tmp/.expr", "r");

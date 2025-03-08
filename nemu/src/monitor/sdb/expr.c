@@ -40,9 +40,9 @@ static struct rule {
    */
 
   {" +", TK_NOTYPE},    // spaces
-  {"^==$", TK_EQ},        // equal
-	{"^!=$", TK_NEQ},     // not equal
-	{"^&&$", TK_AND},     // and
+  {"^==", TK_EQ},        // equal
+	{"^!=", TK_NEQ},     // not equal
+	{"^&&", TK_AND},     // and
 	{"^0x[a-fA-F0-9]+", TK_HEX},   // hex 排在number的前面，避免regex解析错误
 	{"[0-9]+", TK_NUM},     // number
 	{"^\\$+[a-z0-9]+", TK_REG},	// reg
