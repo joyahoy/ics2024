@@ -25,6 +25,9 @@ void init_regex();
 void init_wp_pool();
 word_t paddr_read(paddr_t addr, int len);
 word_t expr(char *e, bool *success);
+void new_wp(char *e);
+void free_wp(int NO);
+void watchpoint_display();	
 
 /* We use the `readline' library to provide more flexibility to read from stdin. */
 static char* rl_gets() {
@@ -69,7 +72,7 @@ static int cmd_info(char *args){
 	if(strcmp(arg,"r") == 0){
 		isa_reg_display();
 	}else if(strcmp(arg,"w") == 0){
-		TODO();	
+		watchpoint_display();	
 	}else panic("info r/w");	
 	return 0;
 }
@@ -96,6 +99,20 @@ static int cmd_p(char *args){
 	return 0;
 }
 
+static int cmd_w(char *args){
+	char *expr = strtok(NULL, " ");
+	new_wp(expr);
+	return 0;
+}
+
+static int cmd_d(char *args){
+	char *arg = strtok(NULL, " ");
+	int NO = -1;
+	sscanf(arg, "%d", &NO);
+	free_wp(NO);
+	return 0;
+}
+
 static int cmd_help(char *args);
 
 static struct {
@@ -107,9 +124,11 @@ static struct {
   { "c", "Continue the execution of the program", cmd_c },
   { "q", "Exit NEMU", cmd_q },
 	{ "si", "si [N]", cmd_si },
-	{ "info", "info r/w", cmd_info },
-	{ "x", "x [N] EXPER", cmd_x },
-	{ "p", "p EXPR", cmd_p },
+	{ "info", "info r/w 打印寄存器状态/打印监视点信息", cmd_info },
+	{ "x", "x [N] EXPER 求出表达式EXPR的值, 将结果作为起始内存地址, 以十六进制形式输出连续的N个4字节", cmd_x },
+	{ "p", "p EXPR 求出表达式EXPR的值", cmd_p },
+	{ "w", "w EXPR 当表达式EXPR的值发生变化时, 暂停程序执行", cmd_w },
+	{ "d", "d N 删除序号为N的监视点", cmd_d },
   /* TODO: Add more commands */
 
 };
