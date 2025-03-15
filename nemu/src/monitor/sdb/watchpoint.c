@@ -127,7 +127,7 @@ void free_wp(int NO){            //free_wp()将wp归还到free_链表中
 
 void traver_trace_diff(){
 	//test
-	printf("here traver_trace_diff\n");
+//	printf("here traver_trace_diff\n");
 	WP *tmp = head;
 	if(head == NULL) return;
 	while(tmp != NULL){
