@@ -41,8 +41,9 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
 
 	//扫描监视点
-	IFDEF(CONFIG_WATCHPOINT, traver_trace_diff());
-	traver_trace_diff();
+	//等待实现 IFDEF(CONFIG_WATCHPOINT, traver_trace_diff());
+	
+	//traver_trace_diff();
 }
 
 static void exec_once(Decode *s, vaddr_t pc) {
